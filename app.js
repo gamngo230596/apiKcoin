@@ -23,7 +23,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(function(req, res, next) {
-    var allowedOrigins = ['https://userkcoin.herokuapp.com/'];
+    var allowedOrigins = ['https://userkcoin.herokuapp.com/','http://localhost:4200'];
     var origin = req.headers.origin;
     if(allowedOrigins.indexOf(origin) > -1){
         res.setHeader('Access-Control-Allow-Origin', origin);
