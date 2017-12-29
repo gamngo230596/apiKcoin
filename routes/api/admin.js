@@ -45,7 +45,7 @@ router.post('/', function(req, res,next) {
         else
         {
             console.log('Connection established to', url);
-            var myobj = { "email": req.body.email,"password":req.body.password,"firstname":req.body.firstname,"lastname":req.body.lastname;"active":0;"actual":0;"available":0};
+            var myobj = { "email": req.body.email,"password":req.body.password,"firstname":req.body.firstname,"lastname":req.body.lastname,"active":0,"actualbalance":0,"availablebalance":0};
             db.collection("user").insertOne(myobj, function(err, result) {
                 if (err)
                     res.send(err);
