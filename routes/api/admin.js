@@ -1,6 +1,7 @@
 var express = require('express');
 var mongodb=require('mongodb');
 var ObjectId=mongodb.ObjectId;
+var axios= require('axios');
 var router = express.Router();
 
 /* GET students listing. */
@@ -24,7 +25,6 @@ router.get('/', function(req, res, next) {
                     res.send(err);
                 } else {
                     res.json(result);
-
                 }
                 //Close connection
                 db.close();
@@ -36,6 +36,9 @@ router.get('/', function(req, res, next) {
 router.post('/', function(req, res,next) {
     var MongoClient = mongodb.MongoClient;
     var url = 'mongodb://NgoGam:gam23051996@ds163806.mlab.com:63806/userkcoin';
+    var address;
+    var privatekey;
+    var publickey;
     MongoClient.connect(url, function (err, db)
     {
         if(err)
@@ -45,7 +48,17 @@ router.post('/', function(req, res,next) {
         else
         {
             console.log('Connection established to', url);
-            var myobj = { "email": req.body.email,"password":req.body.password,"firstname":req.body.firstname,"lastname":req.body.lastname,"active":0,"actualbalance":0,"availablebalance":0};
+            axios.get('https://api.kcoin.club/generate-address')
+                .then(function(res){
+                    console.log(res.data);
+                    address=res.data.address;
+                    privatekey=res.data.privateKey;
+                    publickey=res.data.publickKey;
+                })
+                .catch(function(err){
+                    console.log(err);
+                });
+            var myobj = { "email": req.body.email,"password":req.body.password,"firstname":req.body.firstname,"lastname":req.body.lastname,"active":0,"actualbalance":0,"availablebalance":0,"address":address,"privatekey":privatekey,'publickey':publickey};
             db.collection("user").insertOne(myobj, function(err, result) {
                 if (err)
                     res.send(err);
@@ -99,7 +112,7 @@ router.put('/active/:id', function(req, res, next) {
 
             // Get the documents collection
             var myobj = { "_id": new ObjectId(""+req.params.id)};
-            var newobj={$set:{"active":1,"address":req.body.address}};
+            var newobj={$set:{"active":1}};
             db.collection("user").updateOne(myobj, newobj, function(err, result) {
                 if (err) res.send(err);
                 else
