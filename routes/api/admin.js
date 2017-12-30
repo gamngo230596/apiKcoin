@@ -49,23 +49,24 @@ router.post('/', function(req, res,next) {
         {
             console.log('Connection established to', url);
             axios.get('https://api.kcoin.club/generate-address')
-                .then(function(res){
-                    console.log(res.data);
-                    address=res.data.address;
-                    privatekey=res.data.privateKey;
-                    publickey=res.data.publickKey;
-                })
-                .catch(function(err){
-                    console.log(err);
-                });
-            var myobj = { "email": req.body.email,"password":req.body.password,"firstname":req.body.firstname,"lastname":req.body.lastname,"active":0,"actualbalance":0,"availablebalance":0,"address":address,"privatekey":privatekey,'publickey':publickey};
-            db.collection("user").insertOne(myobj, function(err, result) {
-                if (err)
-                    res.send(err);
-                else
-                    res.send("1 documents inserted");
-                db.close();
-            });
+                .then(function(respone){
+                    console.log(respone.data);
+                    address=respone.data.address;
+                    privatekey=respone.data.privateKey;
+                    publickey=respone.data.publicKey;
+                    var myobj = { "email": req.body.email,"password":req.body.password,"firstname":req.body.firstname,"lastname":req.body.lastname,"active":0,"actualbalance":0,"availablebalance":0,"address":address,"privatekey":privatekey,'publickey':publickey};
+                    db.collection("user").insertOne(myobj, function(err, result) {
+                        if (err)
+                            res.send(err);
+                        else
+                            res.send("1 documents inserted");
+                        db.close();
+                    });
+                        })
+                        .catch(function(err){
+                            console.log(err);
+                        });
+            
 
         }
     });
