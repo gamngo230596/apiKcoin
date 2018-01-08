@@ -3,7 +3,72 @@ var mongodb=require('mongodb');
 var ObjectId=mongodb.ObjectId;
 var axios= require('axios');
 var router = express.Router();
+/*setInterval(()=>{
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds137957.mlab.com:37957/datablocks';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+            const WebSocket = require('ws');
+            const ws = new WebSocket('wss://api.kcoin.club/');
+            ws.onopen = function () {
+                    ws.send("Hey there!");  
+            };
+            ws.onmessage = function (result) {
+                console.log(result.data);
+                console.log(JSON.parse(result.data).data);
+                if(JSON.parse(result.data).type.toString()==="block")
+                {
+                    var lengthTrans=JSON.parse(result.data).data.transactions.length;//tung cai
+                console.log(lengthTrans);
+                var arrTransaction=[];
+                for(var k=0;k<lengthTrans;k++)//2 1
+                {
+                    var lengthOutput=JSON.parse(result.data).data.transactions[k].outputs.length;
+                    var arrOutput=[];
+                    for(var p=0;p<lengthOutput;p++)//1 lan 2 10
+                    {
+                        var objOut={
+                            "index":p+k,
+                            "lockScript":JSON.parse(result.data).data.transactions[k].outputs[p].lockScript,
+                            "value":JSON.parse(result.data).data.transactions[k].outputs[p].value
+                        }
+                        arrOutput.push(objOut);
 
+                    }
+                   //console.log(arrOutput);
+                    var obj={"hash":JSON.parse(result.data).data.transactions[k].hash,
+                        "input":JSON.parse(result.data).data.transactions[k].inputs,
+                        "outputs":arrOutput
+                    }
+                    arrTransaction.push(obj);
+                }
+                //console.log(arrTransaction);
+                var model={
+                    "hash":JSON.parse(result.data).data.hash,
+                    "transactions":arrTransaction
+                }
+                db.collection("blocks").insertOne(model, function(err3, result) {
+                    if (err)
+                        console.log(err3);
+                    else
+                        console.log("1 documents inserted");
+                });  
+                }
+                
+                
+                
+            };   
+        }
+    });
+    
+},30000);*/
 /* GET students listing. */
 router.get('/', function(req, res, next) {
     var MongoClient = mongodb.MongoClient;
@@ -152,4 +217,405 @@ router.put('/:id', function(req, res, next) {
         }
     });
 });
+
+
+router.get('/balance/:id', function(req, res, next) {
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds137957.mlab.com:37957/datablocks';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+            var address='ADD '+req.params.id.toString();
+            var query = {"transactions.outputs.lockScript":{$all:[address]}};
+            var balance=[];
+            db.collection("blocks").find(query).toArray(function(err, result) {
+                if (err) throw err;
+                var resultLength=result.length;
+               
+                var transactionsID;
+                var index;
+                var money;
+                var obj;
+                for(var k=0;k<resultLength;k++)
+                {
+                     var transactionLength=result[k].transactions.length;
+                    for(var i=0;i<transactionLength;i++){
+                    var outputsLength=result[k].transactions[i].outputs.length;
+                        for(var j=0;j<outputsLength;j++){
+                            if(result[k].transactions[i].outputs[j].lockScript===address)
+                            {
+                                transactionsID=result[k].transactions[i].hash;
+                                index=result[k].transactions[i].outputs[j].index;
+                                money=result[k].transactions[i].outputs[j].value;
+                                obj=result[k].transactions[i].hash;
+                                
+                                var myobj={"hash":obj,"money":money,"index":index};
+                                var query2={"transactions.input.referencedOutputHash":{$all:[transactionsID]},"transactions.input.referencedOutputIndex":{$all:[index]}};
+                                db.collection("blocks").find(query2).toArray(function(err2,result2){
+                                    if(result2.length===0)
+                                    {
+                                        balance.push(myobj);
+                                    }
+                                    
+                                    
+                                });
+                                
+                                
+                                
+
+                            }
+                        }
+                    }
+                  
+                }
+               setTimeout(()=>{
+
+                                    res.json(balance);
+                                },2000);
+                 db.close();
+                
+            });
+
+           
+        }
+    });
+});
+router.get('/money/:id', function(req, res, next) {
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds137957.mlab.com:37957/datablocks';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+            var address='ADD '+req.params.id.toString();
+            var query = {"transactions.outputs.lockScript":{$all:[address]}};
+            var balance=0;
+            db.collection("blocks").find(query).toArray(function(err, result) {
+                if (err) throw err;
+                var resultLength=result.length;
+               
+                var transactionsID;
+                var index;
+                var money;
+                var obj;
+                for(var k=0;k<resultLength;k++)
+                {
+                     var transactionLength=result[k].transactions.length;
+                    for(var i=0;i<transactionLength;i++){
+                    var outputsLength=result[k].transactions[i].outputs.length;
+                        for(var j=0;j<outputsLength;j++){
+                            if(result[k].transactions[i].outputs[j].lockScript===address)
+                            {
+                                transactionsID=result[k].transactions[i].hash;
+                                index=result[k].transactions[i].outputs[j].index;
+                                money=result[k].transactions[i].outputs[j].value;
+                                obj=result[k].transactions[i].hash;
+                                
+                                var myobj={"hash":obj,"money":money,"index":index};
+                                var query2={"transactions.input.referencedOutputHash":{$all:[transactionsID]},"transactions.input.referencedOutputIndex":{$all:[index]}};
+                                db.collection("blocks").find(query2).toArray(function(err2,result2){
+                                    if(result2.length===0)
+                                    {
+                                        balance+=myobj.money;
+                                    }
+                                    
+                                    
+                                });                           
+
+                            }
+                        }
+                    }
+                  
+                }
+               setTimeout(()=>{
+
+                                    res.json(balance);
+                                },2000);
+                 db.close();
+                
+            });
+
+           
+        }
+    });
+});
+
+router.get('/getblocks', function(req, res, next) {
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds137957.mlab.com:37957/datablocks';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+            axios.get('https://api.kcoin.club/blocks')
+            .then(function(respone1){
+                var total=respone1.headers['x-total-count'];
+                var length=Math.floor(total/100);
+                var q=0;
+                for(var i=0;i<length+1;i++)//1400 100 200 300 400 500 600 700 800 900 1000 1100 1200 1300 1400 
+                {
+                    axios.get('https://api.kcoin.club/blocks?offset='+q)
+                    .then(function(respone2){
+                        for(var j=0;j<respone2.data.length;j++){//100
+                            var lengthTrans=respone2.data[j].transactions.length;//tung cai
+
+                            var arrTransaction=[];
+                            for(var k=0;k<lengthTrans;k++)//2 1
+                            {
+                                var lengthOutput=respone2.data[j].transactions[k].outputs.length;
+                                var arrOutput=[];
+                                for(var p=0;p<lengthOutput;p++)//1 lan 2 10
+                                {
+                                    var objOut={
+                                        "index":p,
+                                        "lockScript":respone2.data[j].transactions[k].outputs[p].lockScript,
+                                        "value":respone2.data[j].transactions[k].outputs[p].value
+                                    }
+                                    arrOutput.push(objOut);
+
+                                }
+                               //console.log(arrOutput);
+                                var obj={"hash":respone2.data[j].transactions[k].hash,
+                                    "input":respone2.data[j].transactions[k].inputs,
+                                    "outputs":arrOutput
+                                }
+                                arrTransaction.push(obj);
+                            }
+                            //console.log(arrTransaction);
+                            var model={
+                                "hash":respone2.data[j].hash,
+                                "transactions":arrTransaction
+                            }
+                            db.collection("blocks").insertOne(model, function(err3, result) {
+                                if (err)
+                                    console.log(err3);
+                                else
+                                    console.log("1 documents inserted");
+                            });  
+                        }
+                        
+                    })
+                    .catch(function(err2){
+                        console.log(err2);
+                    });
+                    var temp=q;
+                    q=q+100;
+                    if(q>total && temp<total) {
+                        q=temp+(total-temp);
+                    }
+                    else if(q>total)
+                    {
+                        res.send("inserted!");
+                    }
+                }
+            })
+            .catch(function(err1){
+                console.log(err1)
+            });
+            
+        }
+    });
+    res.send("inserted!");
+});
+
+
+
+router.post('/withdrawal', function(req, res,next) {
+    let destinations=req.body.address;
+    var key;
+    axios.get('https://api-kcoin.herokuapp.com/api/admin')
+    .then(function(res){
+        res.data.map((data)=>{
+            key={"address":data.address,"privateKey":data.privatekey,"publicKey":data.publickey};
+        });
+    })
+    .catch(function(err){
+        console.log(err);
+    });
+    setTimeout(()=>{
+    let referenceOutputsHashes = [];
+    var arrOutput=[];
+    axios.get('http://localhost:3000/api/admin/balance/'+key.address)
+    .then(function(res){
+        res.data.map((data)=>{
+            arrOutput.push(data);
+        });
+    })
+    .catch(function(err){
+        console.log(err);
+    });
+    setTimeout(()=>{
+    const BOUNTY = parseInt(req.body.money);//tien gui
+    let sum=0;
+    let fund=0;
+    let check=0;
+    for(var i=0;i<arrOutput.length;i++)
+    {
+        fund+=arrOutput[i].money;
+    }
+    /*for(var j=0;j<=check;j++){
+
+        fund+=arrOutput[j].money;
+        referenceOutputsHashes.push(arrOutput[j].hash);
+    }*/
+    arrOutput.map((data)=>{
+        referenceOutputsHashes.push(data);
+    });
+    let change = fund - BOUNTY;
+   
+    // Generate transacitons
+    let bountyTransaction = {
+      version: 1,
+      inputs: [],
+      outputs: []
+    };
+
+    let keys = [];
+
+    referenceOutputsHashes.forEach(hash => {
+      bountyTransaction.inputs.push({
+        referencedOutputHash: hash.hash,
+        referencedOutputIndex: hash.index,
+        unlockScript: ''
+      });
+    });
+
+    // Change because reference output must be use all value
+    bountyTransaction.outputs.push({
+      value: change,
+      lockScript: 'ADD ' + key.address
+    });
+    // Output to all destination 10000 each
+
+      bountyTransaction.outputs.push({
+        value: BOUNTY,
+        lockScript: 'ADD ' + destinations
+      });
+
+
+    // Sign
+    //console.log(bountyTransaction);
+    sign(bountyTransaction, key);
+
+    // Write to file then POST https://api.kcoin.club/transactions
+    console.log(JSON.stringify(bountyTransaction));
+    /*axios.post(' https://api.kcoin.club/transactions',bountyTransaction,{
+         headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(function(respone){
+        console.log(respone);
+    })
+    .catch(function(err){
+        console.log(err)
+    });*/
+    },5000);
+    },5000);
+    
+    
+
+            
+    res.send('123');
+});
+
+
+let getDate=function(){
+    var today = new Date();
+    var dd = today.getDate();
+    var mm = today.getMonth()+1; //January is 0!
+    var yyyy = today.getFullYear();
+
+    if(dd<10) {
+        dd = '0'+dd
+    } 
+
+    if(mm<10) {
+        mm = '0'+mm
+    } 
+
+    today = mm + '/' + dd + '/' + yyyy;
+    return today;
+}
+  // Convert a transaction to binary format for hashing or checking the size
+  let toBinary = function (transaction, withoutUnlockScript) {
+    let version = Buffer.alloc(4);
+    version.writeUInt32BE(transaction.version);
+    let inputCount = Buffer.alloc(4);
+    inputCount.writeUInt32BE(transaction.inputs.length);
+    let inputs = Buffer.concat(transaction.inputs.map(input => {
+      // Output transaction hash
+      let outputHash = Buffer.from(input.referencedOutputHash, 'hex');
+      // Output transaction index
+      let outputIndex = Buffer.alloc(4);
+      // Signed may be -1
+      outputIndex.writeInt32BE(input.referencedOutputIndex);
+      let unlockScriptLength = Buffer.alloc(4);
+      // For signing
+      if (!withoutUnlockScript) {
+        // Script length
+        unlockScriptLength.writeUInt32BE(input.unlockScript.length);
+        // Script
+        let unlockScript = Buffer.from(input.unlockScript, 'binary');
+        return Buffer.concat([ outputHash, outputIndex, unlockScriptLength, unlockScript ]);
+      }
+      // 0 input
+      unlockScriptLength.writeUInt32BE(0);
+      return Buffer.concat([ outputHash, outputIndex, unlockScriptLength]);
+    }));
+    let outputCount = Buffer.alloc(4);
+    outputCount.writeUInt32BE(transaction.outputs.length);
+    let outputs = Buffer.concat(transaction.outputs.map(output => {
+      // Output value
+      let value = Buffer.alloc(4);
+      value.writeUInt32BE(output.value);
+      // Script length
+      let lockScriptLength = Buffer.alloc(4);
+      lockScriptLength.writeUInt32BE(output.lockScript.length);
+      // Script
+      let lockScript = Buffer.from(output.lockScript);
+      return Buffer.concat([value, lockScriptLength, lockScript ]);
+    }));
+    return Buffer.concat([ version, inputCount, inputs, outputCount, outputs ]);
+  };
+
+  // Sign transaction
+  let sign = function (transaction, keys) {
+    let message = toBinary(transaction, true);
+    transaction.inputs.forEach((input, index) => {
+      //let key = key[index];
+      let signature = sign2(message, keys.privateKey);
+      // Genereate unlock script
+      input.unlockScript = 'PUB ' + keys.publicKey + ' SIG ' + signature;
+    });
+  };
+  let sign2 = function (message, privateKeyHex) {
+    const HASH_ALGORITHM = 'sha256';
+    var ursa=require('ursa');
+    // Create private key form hex
+    let privateKey = ursa.createPrivateKey(Buffer.from(privateKeyHex, 'hex'));
+    // Create signer
+    let signer = ursa.createSigner(HASH_ALGORITHM);
+    // Push message to verifier
+    signer.update(message);
+    // Sign
+    return signer.sign(privateKey, 'hex');
+  };
+
 module.exports = router;
