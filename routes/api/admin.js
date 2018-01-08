@@ -568,9 +568,10 @@ router.get('/gettransaction/:id', function(req, res, next) {
 router.get('/getunconfirm/:id', function(req, res, next) {
     axios.get('https://api.kcoin.club/unconfirmed-transactions')
     .then(function(respone){
-        res.json(respone.data)
+        res.json(respone.data);
+    })
     .catch(function(error){
-        res.send(error);
+        console.log(error);
     });
 });
 
