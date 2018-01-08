@@ -217,7 +217,112 @@ router.put('/:id', function(req, res, next) {
         }
     });
 });
+router.post('/transactionsHis', function(req, res,next) {
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds241737.mlab.com:41737/kcointransactions';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+            var myobj = { "addressmain":req.body.addressmain,"address": req.body.address,"date":getDate(),"status":req.body.status,"confirm":false};
+                db.collection("trans").insertOne(myobj, function(err, result) {
+                    if (err)
+                        res.send(err);
+                    else
+                        res.send("1 documents inserted");
+                    db.close();
+                });
+        }
+    });
+});
+router.put('/updatestatus/:id', function(req, res, next) {
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds241737.mlab.com:41737/kcointransactions';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
 
+            // Get the documents collection
+            var myobj = { "_id": new ObjectId(""+req.params.id)};
+
+            var newobj={$set:{"status":req.body.status,"confirm":true}};
+            
+           db.collection("trans").updateOne(myobj, newobj, function(err, result) {
+                if (err) res.send(err);
+                else
+                    res.send("1 document updated");
+                db.close();
+            });
+
+        }
+    });
+});
+
+router.put('/updateactual/:id', function(req, res, next) {
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds163806.mlab.com:63806/userkcoin';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+
+            // Get the documents collection
+            var myobj = { "_id": new ObjectId(""+req.params.id)};
+            var newobj={$set:{"actualbalance":req.body.actual}};
+            db.collection("user").updateOne(myobj, newobj, function(err, result) {
+                if (err) res.send(err);
+                else
+                    res.send("1 document updated");
+                db.close();
+            });
+
+        }
+    });
+});
+router.put('/updateavailable/:id', function(req, res, next) {
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds163806.mlab.com:63806/userkcoin';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+
+            // Get the documents collection
+            var myobj = { "_id": new ObjectId(""+req.params.id)};
+
+            var newobj={$set:{"availablebalance":req.body.newavailable}};
+            
+           db.collection("user").updateOne(myobj, newobj, function(err, result) {
+                if (err) res.send(err);
+                else
+                    res.send("1 document updated");
+                db.close();
+            });
+
+        }
+    });
+});
 
 router.get('/balance/:id', function(req, res, next) {
     var MongoClient = mongodb.MongoClient;
@@ -433,8 +538,41 @@ router.get('/getblocks', function(req, res, next) {
     });
     res.send("inserted!");
 });
+router.get('/gettransaction/:id', function(req, res, next) {
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds241737.mlab.com:41737/kcointransactions';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
 
-
+            // Get the documents collection
+            var collection = db.collection('trans');
+            collection.find({"addressmain":req.params.id.toString()}).toArray(function (err, result) {
+                if (err) {
+                    res.send(err);
+                } else {
+                    res.json(result);
+                }
+                //Close connection
+                db.close();
+            });
+        }
+    });
+});
+router.get('/getunconfirm/:id', function(req, res, next) {
+    axios.get('https://api.kcoin.club/unconfirmed-transactions')
+    .then(function(respone){
+        res.json(respone.data)
+    .catch(function(error){
+        res.send(error);
+    });
+});
 
 router.post('/withdrawal', function(req, res,next) {
     let destinations=req.body.address;
