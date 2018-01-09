@@ -3,7 +3,7 @@ var mongodb=require('mongodb');
 var ObjectId=mongodb.ObjectId;
 var axios= require('axios');
 var router = express.Router();
-/*setInterval(()=>{
+setInterval(()=>{
     var MongoClient = mongodb.MongoClient;
     var url = 'mongodb://NgoGam:gam23051996@ds137957.mlab.com:37957/datablocks';
     MongoClient.connect(url, function (err, db)
@@ -26,7 +26,7 @@ var router = express.Router();
                 if(JSON.parse(result.data).type.toString()==="block")
                 {
                     var lengthTrans=JSON.parse(result.data).data.transactions.length;//tung cai
-                console.log(lengthTrans);
+                //console.log(lengthTrans);
                 var arrTransaction=[];
                 for(var k=0;k<lengthTrans;k++)//2 1
                 {
@@ -35,7 +35,7 @@ var router = express.Router();
                     for(var p=0;p<lengthOutput;p++)//1 lan 2 10
                     {
                         var objOut={
-                            "index":p+k,
+                            "index":p,
                             "lockScript":JSON.parse(result.data).data.transactions[k].outputs[p].lockScript,
                             "value":JSON.parse(result.data).data.transactions[k].outputs[p].value
                         }
@@ -68,7 +68,7 @@ var router = express.Router();
         }
     });
     
-},30000);*/
+},30000);
 /* GET students listing. */
 router.get('/', function(req, res, next) {
     var MongoClient = mongodb.MongoClient;
@@ -139,7 +139,7 @@ router.post('/', function(req, res,next) {
 
 router.delete('/:id', function(req, res, next) {
     var MongoClient = mongodb.MongoClient;
-    var url = 'mongodb://NgoGam:gam23051996@ds163806.mlab.com:63806/userkcoin';
+    var url = 'mongodb://NgoGam:gam23051996@ds241737.mlab.com:41737/kcointransactions';
     MongoClient.connect(url, function (err, db)
     {
 
@@ -152,7 +152,7 @@ router.delete('/:id', function(req, res, next) {
             console.log('Connection established to', url);
 
             var myobj = { "_id": new ObjectId(""+req.params.id)};
-            db.collection("user").removeOne(myobj, function(err, result) {
+            db.collection("trans").removeOne(myobj, function(err, result) {
                 if (err) res.send(err);
                 else
                     res.send("1 document deleted");
@@ -229,7 +229,7 @@ router.post('/transactionsHis', function(req, res,next) {
         else
         {
             console.log('Connection established to', url);
-            var myobj = { "addressmain":req.body.addressmain,"address": req.body.address,"date":getDate(),"status":req.body.status,"confirm":false};
+            var myobj = { "addressmain":req.body.addressmain,"address": req.body.address,"date":getDate(),"status":req.body.status,"confirm":false,"money":req.body.money};
                 db.collection("trans").insertOne(myobj, function(err, result) {
                     if (err)
                         res.send(err);
@@ -327,6 +327,8 @@ router.put('/updateavailable/:id', function(req, res, next) {
 router.get('/balance/:id', function(req, res, next) {
     var MongoClient = mongodb.MongoClient;
     var url = 'mongodb://NgoGam:gam23051996@ds137957.mlab.com:37957/datablocks';
+    var temp=[];
+    var balance=[];
     MongoClient.connect(url, function (err, db)
     {
         if(err)
@@ -347,7 +349,8 @@ router.get('/balance/:id', function(req, res, next) {
                 var index;
                 var money;
                 var obj;
-                for(var k=0;k<resultLength;k++)
+                
+                for(var k=0;k<resultLength;k++)///3
                 {
                      var transactionLength=result[k].transactions.length;
                     for(var i=0;i<transactionLength;i++){
@@ -361,28 +364,14 @@ router.get('/balance/:id', function(req, res, next) {
                                 obj=result[k].transactions[i].hash;
                                 
                                 var myobj={"hash":obj,"money":money,"index":index};
-                                var query2={"transactions.input.referencedOutputHash":{$all:[transactionsID]},"transactions.input.referencedOutputIndex":{$all:[index]}};
-                                db.collection("blocks").find(query2).toArray(function(err2,result2){
-                                    if(result2.length===0)
-                                    {
-                                        balance.push(myobj);
-                                    }
-                                    
-                                    
-                                });
-                                
-                                
-                                
+                                temp.push(myobj);   
 
                             }
                         }
                     }
                   
                 }
-               setTimeout(()=>{
-
-                                    res.json(balance);
-                                },2000);
+                
                  db.close();
                 
             });
@@ -390,10 +379,44 @@ router.get('/balance/:id', function(req, res, next) {
            
         }
     });
+    setTimeout(()=>{
+         MongoClient.connect(url, function (err1, db1)
+        {
+        if(err1)
+        {
+            console.log('Unable to connect to server',err1);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+            temp.map((data)=>{
+                var query2 = {"transactions.input.referencedOutputHash":{$all:[data.hash]},"transactions.input.referencedOutputIndex":{$all:[data.index]}};
+                db1.collection("blocks").find(query2).toArray(function(err2, result2) {
+                if (err2) throw err2;
+                if(result2.length===0)
+                { 
+                    balance.push(data);
+                    res.json(balance);
+                }
+            });
+            });
+
+            
+            
+         db1.close();
+           
+        }
+
+    });
+         
+    },3000);
+
 });
 router.get('/money/:id', function(req, res, next) {
     var MongoClient = mongodb.MongoClient;
     var url = 'mongodb://NgoGam:gam23051996@ds137957.mlab.com:37957/datablocks';
+    var temp=[];
+    var balance=[];
     MongoClient.connect(url, function (err, db)
     {
         if(err)
@@ -405,7 +428,7 @@ router.get('/money/:id', function(req, res, next) {
             console.log('Connection established to', url);
             var address='ADD '+req.params.id.toString();
             var query = {"transactions.outputs.lockScript":{$all:[address]}};
-            var balance=0;
+            var balance=[];
             db.collection("blocks").find(query).toArray(function(err, result) {
                 if (err) throw err;
                 var resultLength=result.length;
@@ -414,7 +437,8 @@ router.get('/money/:id', function(req, res, next) {
                 var index;
                 var money;
                 var obj;
-                for(var k=0;k<resultLength;k++)
+                
+                for(var k=0;k<resultLength;k++)///3
                 {
                      var transactionLength=result[k].transactions.length;
                     for(var i=0;i<transactionLength;i++){
@@ -428,25 +452,14 @@ router.get('/money/:id', function(req, res, next) {
                                 obj=result[k].transactions[i].hash;
                                 
                                 var myobj={"hash":obj,"money":money,"index":index};
-                                var query2={"transactions.input.referencedOutputHash":{$all:[transactionsID]},"transactions.input.referencedOutputIndex":{$all:[index]}};
-                                db.collection("blocks").find(query2).toArray(function(err2,result2){
-                                    if(result2.length===0)
-                                    {
-                                        balance+=myobj.money;
-                                    }
-                                    
-                                    
-                                });                           
+                                temp.push(myobj);   
 
                             }
                         }
                     }
                   
                 }
-               setTimeout(()=>{
-
-                                    res.json(balance);
-                                },2000);
+                
                  db.close();
                 
             });
@@ -454,6 +467,45 @@ router.get('/money/:id', function(req, res, next) {
            
         }
     });
+    setTimeout(()=>{
+         MongoClient.connect(url, function (err1, db1)
+        {
+        if(err1)
+        {
+            console.log('Unable to connect to server',err1);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+            temp.map((data)=>{
+                var query2 = {"transactions.input.referencedOutputHash":{$all:[data.hash]},"transactions.input.referencedOutputIndex":{$all:[data.index]}};
+                db1.collection("blocks").find(query2).toArray(function(err2, result2) {
+                if (err2) throw err2;
+                if(result2.length===0)
+                { 
+                    balance.push(data);
+                    //res.json(balance.money);
+                }
+            });
+            });
+
+            
+            
+         db1.close();
+           
+        }
+        setTimeout(()=>{
+            var money=0;
+            balance.map((data)=>{
+                money+=data.money;
+            })
+            res.send(""+money);
+        },2000);
+
+    });
+         
+    },3000);
+
 });
 
 router.get('/getblocks', function(req, res, next) {
@@ -565,10 +617,52 @@ router.get('/gettransaction/:id', function(req, res, next) {
         }
     });
 });
+router.get('/gettransaction', function(req, res, next) {
+    var MongoClient = mongodb.MongoClient;
+    var url = 'mongodb://NgoGam:gam23051996@ds241737.mlab.com:41737/kcointransactions';
+    MongoClient.connect(url, function (err, db)
+    {
+        if(err)
+        {
+            console.log('Unable to connect to server',err);
+        }
+        else
+        {
+            console.log('Connection established to', url);
+
+            // Get the documents collection
+            var collection = db.collection('trans');
+            collection.find({}).toArray(function (err, result) {
+                if (err) {
+                    res.send(err);
+                } else {
+                    res.json(result);
+                }
+                //Close connection
+                db.close();
+            });
+        }
+    });
+});
 router.get('/getunconfirm/:id', function(req, res, next) {
     axios.get('https://api.kcoin.club/unconfirmed-transactions')
     .then(function(respone){
-        res.json(respone.data);
+        var address=req.params.id;
+        var resultLength=respone.data.length;
+        var result=[];
+        for(var i=0;i<resultLength;i++)
+        {
+            var outputsLength=respone.data[i].outputs.length;
+            for(var j=0;j<outputsLength;j++)
+            {
+                 if(respone.data[i].outputs[j].lockScript==="ADD "+address)
+                 {
+                    result.push(respone.data[i]);
+                 }
+            }
+           
+        }
+        res.json(result);
     })
     .catch(function(error){
         console.log(error);
@@ -576,13 +670,21 @@ router.get('/getunconfirm/:id', function(req, res, next) {
 });
 
 router.post('/withdrawal', function(req, res,next) {
-    let destinations=req.body.address;
+    let destinations=req.body.addressreceived;
+    let inputaddress=req.body.address;
     var key;
     axios.get('https://api-kcoin.herokuapp.com/api/admin')
     .then(function(res){
         res.data.map((data)=>{
-            key={"address":data.address,"privateKey":data.privatekey,"publicKey":data.publickey};
+            for(var i=0;i<res.data.length;i++)
+            {
+                if(data.address===inputaddress)
+                {
+                    key={"address":data.address,"privateKey":data.privatekey,"publicKey":data.publickey};
+                }
+            }
         });
+            
     })
     .catch(function(err){
         console.log(err);
@@ -599,74 +701,76 @@ router.post('/withdrawal', function(req, res,next) {
     .catch(function(err){
         console.log(err);
     });
-    setTimeout(()=>{
-    const BOUNTY = parseInt(req.body.money);//tien gui
-    let sum=0;
-    let fund=0;
-    let check=0;
-    for(var i=0;i<arrOutput.length;i++)
-    {
-        fund+=arrOutput[i].money;
-    }
-    /*for(var j=0;j<=check;j++){
+        
+        setTimeout(()=>{
+            if(arrOutput.length!==0)
+            {
+            const BOUNTY = parseInt(req.body.money);//tien gui
+            let sum=0;
+            let fund=0;
+            let check=0;
+            for(var i=0;i<arrOutput.length;i++)
+            {
+                fund+=arrOutput[i].money;
+            }
+            arrOutput.map((data)=>{
+                referenceOutputsHashes.push(data);
+            });
+            let change = fund - BOUNTY;
+           
+            // Generate transacitons
+            let bountyTransaction = {
+              version: 1,
+              inputs: [],
+              outputs: []
+            };
 
-        fund+=arrOutput[j].money;
-        referenceOutputsHashes.push(arrOutput[j].hash);
-    }*/
-    arrOutput.map((data)=>{
-        referenceOutputsHashes.push(data);
-    });
-    let change = fund - BOUNTY;
-   
-    // Generate transacitons
-    let bountyTransaction = {
-      version: 1,
-      inputs: [],
-      outputs: []
-    };
+            let keys = [];
 
-    let keys = [];
+            referenceOutputsHashes.forEach(hash => {
+              bountyTransaction.inputs.push({
+                referencedOutputHash: hash.hash,
+                referencedOutputIndex: hash.index,
+                unlockScript: ''
+              });
+            });
 
-    referenceOutputsHashes.forEach(hash => {
-      bountyTransaction.inputs.push({
-        referencedOutputHash: hash.hash,
-        referencedOutputIndex: hash.index,
-        unlockScript: ''
-      });
-    });
+            // Change because reference output must be use all value
+            bountyTransaction.outputs.push({
+              value: change,
+              lockScript: 'ADD ' + key.address
+            });
+            // Output to all destination 10000 each
 
-    // Change because reference output must be use all value
-    bountyTransaction.outputs.push({
-      value: change,
-      lockScript: 'ADD ' + key.address
-    });
-    // Output to all destination 10000 each
-
-      bountyTransaction.outputs.push({
-        value: BOUNTY,
-        lockScript: 'ADD ' + destinations
-      });
+              bountyTransaction.outputs.push({
+                value: BOUNTY,
+                lockScript: 'ADD ' + destinations
+              });
 
 
-    // Sign
-    //console.log(bountyTransaction);
-    sign(bountyTransaction, key);
+            // Sign
+            //console.log(bountyTransaction);
+            sign(bountyTransaction, key);
 
-    // Write to file then POST https://api.kcoin.club/transactions
-    console.log(JSON.stringify(bountyTransaction));
-    /*axios.post(' https://api.kcoin.club/transactions',bountyTransaction,{
-         headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(function(respone){
-        console.log(respone);
-    })
-    .catch(function(err){
-        console.log(err)
-    });*/
+            // Write to file then POST https://api.kcoin.club/transactions
+            console.log(JSON.stringify(bountyTransaction));
+           axios.post(' https://api.kcoin.club/transactions',bountyTransaction,{
+                 headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(function(respone){
+                console.log(respone);
+            })
+            .catch(function(err){
+                console.log(err)
+            });
+            }
+        },5000);
+       
+        
     },5000);
-    },5000);
+    
     
     
 
